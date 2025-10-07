@@ -177,3 +177,72 @@ def plot_categoricas(df, cols=None):
 
     plt.tight_layout()
     plt.show()
+
+
+def categoricasXtarget(df, target, cols=None, titulo="Relações com variável alvo"):
+    # Detectar colunas categóricas automaticamente se não forem passadas
+    if cols is None:
+        cols = df.select_dtypes(include=['object', 'category', 'int', 'bool']).columns.tolist()
+        cols = [c for c in cols if c != target]
+    
+    if not cols:
+        print("Nenhuma variável categórica encontrada para plotar.")
+        return
+
+    # Definir paleta de cores padrão
+    cores = ['tomato', 'teal', 'orange']
+
+    # Layout automático
+    n = len(cols)
+    linhas = math.ceil(n / 3)
+    fig, axes = plt.subplots(linhas, 3, figsize=(6 * 3, 5 * linhas))
+    axes = np.array(axes).flatten()
+
+    # Loop sobre as variáveis
+    for i, col in enumerate(cols):
+        # Agrupamento
+        df_grouped = (
+            df.groupby([col, target])
+              .size()
+              .reset_index(name='count')
+        )
+        df_grouped['percent'] = df_grouped['count'] * 100 / len(df)
+
+        # Valores únicos da variável
+        categorias = sorted(df[col].dropna().unique())
+        x = np.arange(len(df[target].unique()))
+        wd = 0.8 / len(categorias)  # largura adaptativa
+
+        # Plot
+        for j, cat in enumerate(categorias):
+            y = df_grouped.query(f"{col} == @cat")['percent'].tolist()
+            axes[i].bar(x + (j - len(categorias)/2)*wd, y, wd,
+                        color=cores[j % len(cores)],
+                        edgecolor='black', label=str(cat))
+            
+            # Adiciona rótulos de percentual
+            for k in range(len(x)):
+                axes[i].text(
+                    x[k] + (j - len(categorias)/2)*wd,
+                    y[k],
+                    f'{y[k]:.1f}%',
+                    ha='center',
+                    va='bottom',
+                    fontsize=8
+                )
+
+        # Ajustes de eixo e título
+        axes[i].set_title(f"{col} x {target}")
+        axes[i].set_xlabel(target)
+        axes[i].set_ylabel("Percentual (%)")
+        axes[i].set_xticks(x)
+        axes[i].set_xticklabels(df[target].unique())
+        axes[i].set_ylim(0, max(60, df_grouped['percent'].max() + 10))
+        axes[i].legend(title=col, fontsize=8)
+
+    # Remover subplots vazios
+    for j in range(i+1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
