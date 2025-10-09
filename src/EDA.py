@@ -104,7 +104,6 @@ def histograma(df, cols=None, dx=5):
     plt.show()
 
 
-
 def outliers_iqr(df, cols: list):
     """
     Remove outliers de um DF usando o método IQR (Interquartile Range).
@@ -246,3 +245,20 @@ def categoricasXtarget(df, target, cols=None, titulo="Relações com variável a
 
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
+
+
+def correlacao(df, metodo='pearson'):
+    """
+    Plota a matriz de correlação com mapa de calor.
+    """
+    plt.figure(figsize=(12, 8))
+    corr = df.corr(method=metodo)
+    corr[(corr < 0.15)&(corr > -0.15)] = pd.NA
+    corr[corr >=0.99] = pd.NA
+    sns.heatmap(corr, annot=True, fmt=".2f", cmap='coolwarm', square=True, cbar_kws={"shrink": .8})
+    plt.title(f'Matriz de Correlação ({metodo.capitalize()})', fontsize=16)
+    plt.xticks(rotation=45, ha='right')
+    plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.show()
+
