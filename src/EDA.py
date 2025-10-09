@@ -178,7 +178,7 @@ def plot_categoricas(df, cols=None):
     plt.show()
 
 
-def categoricasXtarget(df, target, cols=None, titulo="Relações com variável alvo"):
+def categoricasXtarget(df, target, cols=None):
     # Detectar colunas categóricas automaticamente se não forem passadas
     if cols is None:
         cols = df.select_dtypes(include=['object', 'category', 'int', 'bool']).columns.tolist()
@@ -259,6 +259,52 @@ def correlacao(df, metodo='pearson'):
     plt.title(f'Matriz de Correlação ({metodo.capitalize()})', fontsize=16)
     plt.xticks(rotation=45, ha='right')
     plt.yticks(rotation=0)
+    plt.tight_layout()
+    plt.show()
+
+
+def distribuicao_target(df, target, feature, bins=None):
+    df_local = df.copy()
+
+    # Binning opcional para variáveis numéricas
+    if bins is not None and pd.api.types.is_numeric_dtype(df_local[feature]):
+        df_local[feature] = pd.cut(df_local[feature], bins=bins, include_lowest=True)
+
+    # Agrupar e calcular porcentagem por categoria do feature
+    df_grouped = (
+        df_local.groupby([feature, target])
+        .size()
+        .reset_index(name='count')
+    )
+    df_grouped['percent'] = df_grouped.groupby(feature)['count'].transform(lambda x: x / x.sum() * 100)
+
+    # Pivotar para formato wide (para empilhar as barras)
+    df_pivot = df_grouped.pivot(index=feature, columns=target, values='percent').fillna(0)
+
+    # Configurar cores
+    color_map = {cat: plt.cm.tab10(i) for i, cat in enumerate(df_pivot.columns)}
+
+    # Plot
+    ax = df_pivot.plot(kind='bar', stacked=True, color=[color_map[c] for c in df_pivot.columns], figsize=(10,6), edgecolor='black')
+
+    # Rótulos e formatação
+    ax.set_ylabel('Percentual (%)')
+    ax.set_xlabel(feature)
+    ax.set_title(f'{target} por {feature}')
+
+    # Adiciona rótulos de percentual
+    for i, bars in enumerate(ax.containers):
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width()/2,
+                    bar.get_y() + height/2,
+                    f'{height:.0f}%',
+                    ha='center', va='center', fontsize=9, color='black', weight='bold'
+                )
+
+    plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     plt.show()
 
